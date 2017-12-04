@@ -1,0 +1,7 @@
+numpy
+h5py
+textacy
+backports.csv
+cld2-cffi
+spacy>=2.0.0
+keras>=2.0.0

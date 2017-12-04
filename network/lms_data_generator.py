@@ -140,7 +140,7 @@ class DataGenerator_average_torch(DataGenerator_average):
 		      "train_targets shape", train_targets.size(),
 		      "test_features shape", test_features.size(),
 		      "test_targets shape", test_targets.size(),
-		)
+		      )
 
 		kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
 

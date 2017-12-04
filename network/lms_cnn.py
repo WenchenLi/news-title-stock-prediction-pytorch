@@ -14,13 +14,13 @@ from network.model_config import *
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-parser.add_argument('--batch-size', type=int, default=64, metavar='N',
+parser.add_argument('--batch-size', type=int, default=BATCH_SIZE, metavar='N',
 										help='input batch size for training (default: 64)')
 parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
 										help='input batch size for testing (default: 1000)')
 parser.add_argument('--epochs', type=int, default=1, metavar='N',
 										help='number of epochs to train (default: 10)')
-parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
+parser.add_argument('--lr', type=float, default=LEARNING_RATE, metavar='LR',
 										help='learning rate (default: 0.01)')
 parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
 										help='SGD momentum (default: 0.5)')
@@ -41,40 +41,30 @@ if args.cuda:
 class LMS_CNN(nn.Module):
 	def __init__(self):
 		super(LMS_CNN, self).__init__()
-		self.mid_term_conv_layer = nn.Conv2d(1, 1, kernel_size=2)#MID_TERM_CONV_KERNEL)
-		self.long_term_conv_layer = nn.Conv2d(1, 1, kernel_size=2)#LONG_TERM_CONV_KERNEL)
+		self.mid_term_conv_layer = nn.Conv2d(1, 1, kernel_size=MID_TERM_CONV_KERNEL)#MID_TERM_CONV_KERNEL)
+		self.long_term_conv_layer = nn.Conv2d(1, 1, kernel_size=LONG_TERM_CONV_KERNEL)#LONG_TERM_CONV_KERNEL)
 		# self.conv2_drop = nn.Dropout2d()
-		self.fc1 = nn.Linear(1325, 16) # cat -1 length
+		self.fc1 = nn.Linear(3608, 16) # cat -1 length
 		self.fc2 = nn.Linear(16, 2)
 
 	def forward(self, x):
-		# x[:SHORT_TERM_LENGTH], x[:MID_TERM_LENGTH], x
 		short_term_input, mid_term_input, long_term_input = \
 			x.narrow(2,0,SHORT_TERM_LENGTH), x.narrow(2,0,MID_TERM_LENGTH), x
-
 		# https://github.com/pytorch/pytorch/issues/764
 		short_term_input.contiguous()
 		mid_term_input.contiguous()
 		long_term_input.contiguous()
 
-		# print ("short:",short_term_input.size(),
-		# 			 "mid:",mid_term_input.size(),
-		# 			 "long:",long_term_input.size())
-
 		short_term_flat = short_term_input.view(short_term_input.size(0),-1)
 
 		# mid_term_input = mid_term_input.view(mid_term_input.size(0),mid_term_input.size(2),mid_term_input.size(3))
 		mid_term_conv = self.mid_term_conv_layer(mid_term_input)
-		mid_term_max_pool = F.max_pool2d(mid_term_conv, MID_TERM_CONV_KERNEL)
+		mid_term_max_pool = F.max_pool2d(mid_term_conv, MID_TERM_POOL_SIZE)
 		mid_term_flat = mid_term_max_pool.view(mid_term_max_pool.size(0),-1)
 
 		# long_term_input = long_term_input.view(long_term_input.size(0),long_term_input.size(2),long_term_input.size(3))
-		long_term_conv_out = F.max_pool2d(self.long_term_conv_layer(long_term_input), LONG_TERM_CONV_KERNEL)
+		long_term_conv_out = F.max_pool2d(self.long_term_conv_layer(long_term_input), LONG_TERM_POOL_SIZE)
 		long_term_flat = long_term_conv_out.view(long_term_conv_out.size(0),-1)
-
-		# print("short:", short_term_flat.size(),
-		#       "mid:", mid_term_flat.size(),
-		#       "long:", long_term_flat.size())
 
 		# https://discuss.pytorch.org/t/different-dimensions-tensor-concatenation/5768
 		mid_term_flat = mid_term_flat.view(mid_term_flat.size(0),-1)
@@ -86,6 +76,7 @@ class LMS_CNN(nn.Module):
 
 		merge_layer = torch.cat([short_term_flat,mid_term_flat,long_term_flat], 1)
 
+
 		x = self.fc1(merge_layer)
 		x = self.fc2(x)
 		# x = F.dropout(x, training=self.training) # F.dropout vs nn.dropout2d:https://discuss.pytorch.org/t/how-to-choose-between-torch-nn-functional-and-torch-nn-module-see-mnist-https-github-com-pytorch-examples-blob-master-mnist-main-py/2800/8
@@ -95,7 +86,7 @@ class LMS_CNN(nn.Module):
 class LMS_CNN_keras_wrapper:
 	def __init__(self):
 		self._model = LMS_CNN()
-		self.optimizer = optim.SGD(self._model.parameters(), lr=args.lr, momentum=args.momentum)
+		self.optimizer = optim.Adam(self._model.parameters(), lr=args.lr,)
 		if args.cuda:
 			self._model.cuda()
 

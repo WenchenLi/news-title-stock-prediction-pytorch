@@ -44,7 +44,7 @@ class LMS_CNN(nn.Module):
 		self.mid_term_conv_layer = nn.Conv2d(1, 1, kernel_size=2)#MID_TERM_CONV_KERNEL)
 		self.long_term_conv_layer = nn.Conv2d(1, 1, kernel_size=2)#LONG_TERM_CONV_KERNEL)
 		# self.conv2_drop = nn.Dropout2d()
-		self.fc1 = nn.Linear(3608, 16)
+		self.fc1 = nn.Linear(1325, 16) # cat -1 length
 		self.fc2 = nn.Linear(16, 2)
 
 	def forward(self, x):
@@ -57,20 +57,34 @@ class LMS_CNN(nn.Module):
 		mid_term_input.contiguous()
 		long_term_input.contiguous()
 
-		print ("short:",short_term_input.size(),
-					 "mid:",mid_term_input.size(),
-					 "long:",long_term_input.size())
+		# print ("short:",short_term_input.size(),
+		# 			 "mid:",mid_term_input.size(),
+		# 			 "long:",long_term_input.size())
 
 		short_term_flat = short_term_input.view(short_term_input.size(0),-1)
 
+		# mid_term_input = mid_term_input.view(mid_term_input.size(0),mid_term_input.size(2),mid_term_input.size(3))
 		mid_term_conv = self.mid_term_conv_layer(mid_term_input)
 		mid_term_max_pool = F.max_pool2d(mid_term_conv, MID_TERM_CONV_KERNEL)
 		mid_term_flat = mid_term_max_pool.view(mid_term_max_pool.size(0),-1)
 
+		# long_term_input = long_term_input.view(long_term_input.size(0),long_term_input.size(2),long_term_input.size(3))
 		long_term_conv_out = F.max_pool2d(self.long_term_conv_layer(long_term_input), LONG_TERM_CONV_KERNEL)
 		long_term_flat = long_term_conv_out.view(long_term_conv_out.size(0),-1)
 
-		merge_layer = torch.cat((short_term_flat,mid_term_flat,long_term_flat))
+		# print("short:", short_term_flat.size(),
+		#       "mid:", mid_term_flat.size(),
+		#       "long:", long_term_flat.size())
+
+		# https://discuss.pytorch.org/t/different-dimensions-tensor-concatenation/5768
+		mid_term_flat = mid_term_flat.view(mid_term_flat.size(0),-1)
+		long_term_flat = long_term_flat.view(long_term_flat.size(0),-1)
+
+		# print("short:", short_term_flat.size(),
+		#       "mid:", mid_term_flat.size(),
+		#       "long:", long_term_flat.size())
+
+		merge_layer = torch.cat([short_term_flat,mid_term_flat,long_term_flat], 1)
 
 		x = self.fc1(merge_layer)
 		x = self.fc2(x)
@@ -93,7 +107,8 @@ class LMS_CNN_keras_wrapper:
 			data, target = Variable(data), Variable(target)
 			self.optimizer.zero_grad()
 			output = self._model(data)
-			loss = F.nll_loss(output, target)
+			# print ("output size:",output.size(),"target size:",target.size())
+			loss = F.nll_loss(output, target.squeeze(1))
 			loss.backward()
 			self.optimizer.step()
 			if batch_idx % args.log_interval == 0:
@@ -110,12 +125,12 @@ class LMS_CNN_keras_wrapper:
 				data, target = data.cuda(), target.cuda()
 			data, target = Variable(data, volatile=True), Variable(target)
 			output = self._model(data)
-			test_loss += F.nll_loss(output, target, size_average=False).data[0]  # sum up batch loss
+			test_loss += F.nll_loss(output, target.squeeze(1), size_average=False).data[0]  # sum up batch loss
 			pred = output.data.max(1, )[1]  # get the index of the max log-probability
 			correct += pred.eq(target.data.view_as(pred)).cpu().sum()
 
 		test_loss /= len(test_loader.dataset)
-		print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+		print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.4f}%)\n'.format(
 			test_loss, correct, len(test_loader.dataset),
 			100. * correct / len(test_loader.dataset)))
 

@@ -37,7 +37,7 @@ model_save_path = TRAINING_DIR + "/" + model_name
 date_news_embedding = load_pickle(date_news_embedding_path)
 df_dt_adjclose_with_titles = load_pickle(df_dt_adjclose_with_titles_path)
 
-datagenerator = DataGenerator_average_torch(df_dt_adjclose_with_titles, date_news_embedding)
+datagenerator = DataGenerator_average_torch(df_dt_adjclose_with_titles, date_news_embedding,onehot_target=False)
 train_loader, test_loader = datagenerator.prepare_dataset_torch(cuda=True,batch_size=BATCH_SIZE)
 
 # init model and train

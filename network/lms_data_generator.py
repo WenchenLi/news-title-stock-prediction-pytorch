@@ -23,23 +23,25 @@ from __future__ import print_function
 
 import numpy as np
 from sklearn.preprocessing import normalize
-from network.model_config import LONG_TERM_LENGTH, TRAIN_TEST_SEP_RATE, MID_TERM_LENGTH,\
-	EMBEDDING_DIM,MAX_SEQUENCE_LENGTH
+from network.model_config import LONG_TERM_LENGTH, TRAIN_TEST_SEP_RATE, MID_TERM_LENGTH, \
+	EMBEDDING_DIM, MAX_SEQUENCE_LENGTH
 import torch
+
 
 class DataGenerator_average(object):
 	"""
 	prepare (event) embedding and the label
 	"""
 
-	def __init__(self, dataframe, date_news_embedding):
+	def __init__(self, dataframe, date_news_embedding, onehot_target=False):
 		self.dataframe = dataframe
 		self.date_news_embedding = np.array(date_news_embedding)
 
 		self.date_news_embedding = self.date_news_embedding.reshape(self.date_news_embedding.shape[0],
-																																self.date_news_embedding.shape[1] *
-																																self.date_news_embedding.shape[2])
+		                                                            self.date_news_embedding.shape[1] *
+		                                                            self.date_news_embedding.shape[2])
 
+		self.one_hot_target = onehot_target
 		# need to return those three
 		self.date_list = []
 		self.input_data = []
@@ -66,12 +68,15 @@ class DataGenerator_average(object):
 			self.date_list.append(
 				list(reversed([self.date_list_single[i:i + item_length]])))  # reverse to match training index below
 			self.input_data.append(list(reversed([self.input_data_single[i:i + item_length]])))
-			self.label_data.append(one_hot_encode(self.label_data_single[i + item_length - 1]))  # notice the last
+			if self.one_hot_target:
+				self.label_data.append(one_hot_encode(self.label_data_single[i + item_length - 1]))  # notice the last
+			else:
+				self.label_data.append(self.label_data_single[i + item_length - 1])  # notice the last
 
 		assert len(self.date_list) == len(self.input_data) == len(self.label_data), \
 			(len(self.date_list), len(self.input_data), len(self.label_data))
 
-		# return self.date_list, self.input_data, self.label_data
+	# return self.date_list, self.input_data, self.label_data
 
 	def prepare_dataset(self):
 		input_data_reshaped = np.array(
@@ -84,19 +89,19 @@ class DataGenerator_average(object):
 		label_train = self.label_data[:t]
 		label_test = self.label_data[t:]
 
-		print ("input_train shape", np.array(input_train).shape)
-		print ("input_test shape", np.array(input_test).shape)
-		print ("label_train shape", np.array(label_train).shape)
-		print ("label_test shape", np.array(label_test).shape)
+		# print ("input_train shape", np.array(input_train).shape)
+		# print ("input_test shape", np.array(input_test).shape)
+		# print ("label_train shape", np.array(label_train).shape)
+		# print ("label_test shape", np.array(label_test).shape)
 
 		# train data,  each item in the input_train has a full spectrum of 30 days news embedding
 		short_term_train = np.array([item[0] for item in input_train])  # short term
 		mid_term_train = np.array([item[:MID_TERM_LENGTH] for item in input_train])  # mid term
 		long_term_train = np.array(input_train)  # long term
 		label_train_array = np.array(label_train)
-		print ("short term shape", short_term_train.shape,
-			"mid term shape", mid_term_train.shape,
-			"long term shape", long_term_train.shape)
+		# print ("short term shape", short_term_train.shape,
+		# 	"mid term shape", mid_term_train.shape,
+		# 	"long term shape", long_term_train.shape)
 
 		train_data = {"short_term": short_term_train, "mid_term": mid_term_train, "long_term": long_term_train}
 		# val data
@@ -105,29 +110,37 @@ class DataGenerator_average(object):
 		long_term_test = np.array(input_test)  # long term
 		label_test_array = np.array(label_test)
 
-		test_data = {"short_term": short_term_test, "mid_term": mid_term_test, "long_term": long_term_test}#, label_test)
+		test_data = {"short_term": short_term_test, "mid_term": mid_term_test, "long_term": long_term_test}  # , label_test)
 
-		return (train_data,label_train_array), (test_data,label_test_array)
+		return (train_data, label_train_array), (test_data, label_test_array)
+
 
 class DataGenerator_average_torch(DataGenerator_average):
-	def __init__(self,dataframe, date_news_embedding):
-		super(DataGenerator_average_torch, self).__init__(dataframe=dataframe,date_news_embedding=date_news_embedding)
+	def __init__(self, dataframe, date_news_embedding, onehot_target=False):
+		super(DataGenerator_average_torch, self).__init__(dataframe=dataframe, date_news_embedding=date_news_embedding,
+		                                                  onehot_target=onehot_target)
 
-	def prepare_dataset_torch(self,cuda,batch_size):
+	def prepare_dataset_torch(self, cuda, batch_size):
 		(train_data, train_targets), (test_data, test_targets) = self.prepare_dataset()
 		x_train = train_data["long_term"]
-		x_train = x_train.reshape((x_train.shape[0],1,LONG_TERM_LENGTH,EMBEDDING_DIM*MAX_SEQUENCE_LENGTH))
+		x_train = x_train.reshape((x_train.shape[0], 1, LONG_TERM_LENGTH, EMBEDDING_DIM * MAX_SEQUENCE_LENGTH))
 		x_train = np.double(x_train)
 
 		x_test = test_data["long_term"]
 		x_test = x_test.reshape((x_test.shape[0], 1, LONG_TERM_LENGTH, EMBEDDING_DIM * MAX_SEQUENCE_LENGTH))
 		x_test = np.double(x_test)
 
-		train_features = torch.from_numpy(x_train).double()
-		train_targets = torch.from_numpy(train_targets).double()
+		train_features = torch.from_numpy(x_train).float()
+		train_targets = torch.squeeze(torch.from_numpy(train_targets))
 
-		test_features = torch.from_numpy(x_test)
-		test_targets = torch.from_numpy(test_targets)
+		test_features = torch.from_numpy(x_test).float()
+		test_targets = torch.squeeze(torch.from_numpy(test_targets))
+
+		print("train_features shape:", train_features.size(),
+		      "train_targets shape", train_targets.size(),
+		      "test_features shape", test_features.size(),
+		      "test_targets shape", test_targets.size(),
+		)
 
 		kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
 
@@ -142,5 +155,4 @@ class DataGenerator_average_torch(DataGenerator_average):
 			dataset=test_set,
 			batch_size=batch_size, shuffle=True, **kwargs)
 
-		return train_loader,test_loader
-
+		return train_loader, test_loader

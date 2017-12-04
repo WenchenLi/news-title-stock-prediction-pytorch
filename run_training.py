@@ -20,7 +20,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from network.lms_data_generator import DataGenerator_average
+from network.lms_data_generator import DataGenerator_average_torch
 from network.util import load_pickle
 from network.lms_cnn import *
 
@@ -37,15 +37,13 @@ model_save_path = TRAINING_DIR + "/" + model_name
 date_news_embedding = load_pickle(date_news_embedding_path)
 df_dt_adjclose_with_titles = load_pickle(df_dt_adjclose_with_titles_path)
 
-datagenerator = DataGenerator_average(df_dt_adjclose_with_titles, date_news_embedding)
-(train_data, label_train_array), (test_data, label_test_array) = datagenerator.prepare_dataset()
-val_data = (test_data, label_test_array)
+datagenerator = DataGenerator_average_torch(df_dt_adjclose_with_titles, date_news_embedding)
+train_loader, test_loader = datagenerator.prepare_dataset_torch(cuda=True,batch_size=BATCH_SIZE)
 
 # init model and train
-model = build_deep_prediction_model()
-model.summary()
-if resume_training:
-	model.load_weights(model_save_path)
-model.fit(train_data, label_train_array,
-					validation_data=val_data, batch_size=BATCH_SIZE, epochs=NUM_EPOCH)
-model.save(model_save_path)
+model = LMS_CNN_keras_wrapper()
+# model.summary()
+# if resume_training:
+# 	model.load_weights(model_save_path)
+model.fit(train_loader=train_loader,test_loader=test_loader,epochs=NUM_EPOCH)
+# model.save(model_save_path)

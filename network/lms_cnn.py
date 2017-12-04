@@ -119,7 +119,7 @@ class LMS_CNN_keras_wrapper:
 			test_loss, correct, len(test_loader.dataset),
 			100. * correct / len(test_loader.dataset)))
 
-	def fit(self,train_loader,test_loader,epochs,batch_size=BATCH_SIZE):
+	def fit(self,train_loader,test_loader,epochs):#batch_size=BATCH_SIZE):
 		# TODO keras prepare batch within model, torch prepare batch in datagenerator due to former static
 		# TODO and latter dynamic in the computation graph
 		for epoch in range(1, epochs + 1):

@@ -26,9 +26,9 @@ from network.lms_cnn import *
 
 # pre training paths/configs
 resume_training = False
-date_news_embedding_path = "training_dir/date_news_embedding" + "_" + EMBEDDING_METHOD + "_" + str(
+date_news_embedding_path = TRAINING_DIR +"/date_news_embedding" + "_" + EMBEDDING_METHOD + "_" + str(
 	EMBEDDING_DIM) + ".pickle"
-df_dt_adjclose_with_titles_path = "training_dir/df_dt_adjclose_with_titles.pickle"
+df_dt_adjclose_with_titles_path = TRAINING_DIR +"/input_dataframe_with_signal.pickle"
 
 model_name = "lms_cnn" + "_".join([str(i) for i in lsm_cnn_config_save_model])
 model_save_path = TRAINING_DIR + "/" + model_name

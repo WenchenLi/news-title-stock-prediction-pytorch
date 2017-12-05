@@ -10,6 +10,9 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.autograd import Variable
 
+from tqdm import tqdm
+import numpy as np
+
 from network.model_config import *
 
 # Training settings
@@ -44,7 +47,7 @@ class LMS_CNN(nn.Module):
 		self.mid_term_conv_layer = nn.Conv2d(1, 1, kernel_size=MID_TERM_CONV_KERNEL)  # MID_TERM_CONV_KERNEL)
 		self.long_term_conv_layer = nn.Conv2d(1, 1, kernel_size=LONG_TERM_CONV_KERNEL)  # LONG_TERM_CONV_KERNEL)
 		self.conv2_drop = nn.Dropout2d()
-		self.fc1 = nn.Linear(3608, 16)  # cat -1 length
+		self.fc1 = nn.Linear(3608, 16)  # TODO  fix this calculation later, cat -1 length
 		self.fc2 = nn.Linear(16, 2)
 
 	def forward(self, x):
@@ -92,6 +95,7 @@ class LMS_CNN_keras_wrapper:
 
 	def train(self, epoch, train_loader):
 		self._model.train()  # sets to train mode
+		loss_list = []
 		for batch_idx, (data, target) in enumerate(train_loader):
 			if args.cuda:
 				data, target = data.cuda(), target.cuda()
@@ -108,19 +112,21 @@ class LMS_CNN_keras_wrapper:
 				else:
 					l2_reg = l2_reg + W.norm(2)
 			loss += l2_reg * REGULARIZER_WEIGHT
-
+			loss_list.append(loss.data)
 			loss.backward()
 			self.optimizer.step()
 			if batch_idx % args.log_interval == 0:
-				print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+				info = 'Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
 					epoch, batch_idx * len(data), len(train_loader.dataset),
-								 100. * batch_idx / len(train_loader), loss.data[0]))
+								 100. * batch_idx / len(train_loader), loss.data[0])
+
+		return np.mean(loss_list)
 
 	def test(self, test_loader):
 		self._model.eval()  # sets model to test mode
 		test_loss = 0
 		correct = 0
-		for data, target in test_loader:
+		for data, target in test_loader :
 			if args.cuda:
 				data, target = data.cuda(), target.cuda()
 			data, target = Variable(data, volatile=True), Variable(target)
@@ -130,16 +136,23 @@ class LMS_CNN_keras_wrapper:
 			correct += pred.eq(target.data.view_as(pred)).cpu().sum()
 
 		test_loss /= len(test_loader.dataset)
-		print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.4f}%)\n'.format(
+		info = 'Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.4f}%)'.format(
 			test_loss, correct, len(test_loader.dataset),
-			100. * correct / len(test_loader.dataset)))
+			100. * correct / len(test_loader.dataset))
+		return info
 
 	def fit(self, train_loader, test_loader, epochs):  # batch_size=BATCH_SIZE):
 		# TODO keras prepare batch within model, torch prepare batch in datagenerator due to former static
 		# TODO and latter dynamic in the computation graph
-		for epoch in range(1, epochs + 1):
-			self.train(epoch, train_loader)
-			self.test(test_loader)
+		pbar = tqdm(range(1, epochs + 1))
+		for epoch in pbar:
+			train_info = "Training set: Average loss:"
+			average_loss = self.train(epoch, train_loader)
+			train_info += str(average_loss)
+
+			test_info = self.test(test_loader)
+
+			pbar.set_description(train_info +"|" + test_info)
 
 	def save(self, path):
 		torch.save(self._model.state_dict(), path)

@@ -38,8 +38,8 @@ class DataGenerator_average(object):
 		self.date_news_embedding = np.array(date_news_embedding)
 
 		self.date_news_embedding = self.date_news_embedding.reshape(self.date_news_embedding.shape[0],
-		                                                            self.date_news_embedding.shape[1] *
-		                                                            self.date_news_embedding.shape[2])
+																																self.date_news_embedding.shape[1] *
+																																self.date_news_embedding.shape[2])
 
 		self.one_hot_target = onehot_target
 		# need to return those three
@@ -118,7 +118,7 @@ class DataGenerator_average(object):
 class DataGenerator_average_torch(DataGenerator_average):
 	def __init__(self, dataframe, date_news_embedding, onehot_target=False):
 		super(DataGenerator_average_torch, self).__init__(dataframe=dataframe, date_news_embedding=date_news_embedding,
-		                                                  onehot_target=onehot_target)
+																											onehot_target=onehot_target)
 
 	def prepare_dataset_torch(self, cuda, batch_size):
 		(train_data, train_targets), (test_data, test_targets) = self.prepare_dataset()
@@ -137,10 +137,10 @@ class DataGenerator_average_torch(DataGenerator_average):
 		test_targets = torch.squeeze(torch.from_numpy(test_targets))
 
 		print("train_features shape:", train_features.size(),
-		      "train_targets shape", train_targets.size(),
-		      "test_features shape", test_features.size(),
-		      "test_targets shape", test_targets.size(),
-		      )
+					"train_targets shape", train_targets.size(),
+					"test_features shape", test_features.size(),
+					"test_targets shape", test_targets.size(),
+					)
 
 		kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
 

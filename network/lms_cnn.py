@@ -1,3 +1,22 @@
+# -*- coding: utf-8 -*-
+# Copyright 2017 The Wenchen Li. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+"""
+long mid short term cnn
+"""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -52,7 +71,7 @@ class LMS_CNN(nn.Module):
 
 		merge_layer = torch.cat([short_term_flat, mid_term_flat, long_term_flat], 1)
 
-		print (short_term_flat.size(), mid_term_max_pool.size(), long_term_max_pool.size())
+		# print (short_term_flat.size(), mid_term_max_pool.size(), long_term_max_pool.size())
 
 		x = self.fc1(merge_layer)
 		x = self.fc1_dropout(x)
@@ -116,6 +135,15 @@ class LMS_CNN_keras_wrapper:
 			test_loss, correct, len(test_loader.dataset),
 			100. * correct / len(test_loader.dataset))
 		return info
+
+	def predict(self, test_loader):
+		self._model.eval()  # sets model to test mode
+		for data, target in test_loader:
+			if self.cuda:
+				data, target = data.cuda(), target.cuda()
+			data, target = Variable(data, volatile=True), Variable(target)
+			output = self._model(data)
+			pred = output.data.max(1, )[1]
 
 	def fit(self, train_loader, test_loader, epochs):
 		pbar = tqdm(range(1, epochs + 1))

@@ -26,6 +26,9 @@ from network.util import load_pickle
 from network.preprocess import clean_str
 import nlp_vocab
 
+# from torchsample.modules import ModuleTrainer
+
+
 
 class LMS_Predictor:
 	"""
@@ -54,10 +57,11 @@ class LMS_Predictor:
 		self.embedding_matrix = load_pickle(embedding_matrix_path)
 
 		saved_model_path = TRAINING_DIR + "/" + self.model_name
-		self.model = build_deep_prediction_model()
+		self.model = LMS_CNN_keras_wrapper()
 		self.model.load_weights(saved_model_path)
 
-	def _predict(self, X):
+
+	def _predict(self, X): #TODO update this for torch, see whether we need this module: https://github.com/ncullen93/torchsample
 		"""
 		predict long, short given long, mid, short term vectors.
 		:param X:dict| dict that has long, mid, short term vectors,

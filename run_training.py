@@ -25,7 +25,7 @@ from network.util import load_pickle
 from network.lms_cnn import *
 
 # pre training paths/configs
-resume_training = False
+resume_training = True
 date_news_embedding_path = TRAINING_DIR +"/date_news_embedding" + "_" + EMBEDDING_METHOD + "_" + str(
 	EMBEDDING_DIM) + ".pickle"
 df_dt_adjclose_with_titles_path = TRAINING_DIR +"/input_dataframe_with_signal.pickle"
@@ -43,7 +43,7 @@ train_loader, test_loader = datagenerator.prepare_dataset_torch(cuda=True,batch_
 # init model and train
 model = LMS_CNN_keras_wrapper()
 # model.summary()
-# if resume_training:
-# 	model.load_weights(model_save_path)
+if resume_training:
+	model.load_weights(model_save_path)
 model.fit(train_loader=train_loader,test_loader=test_loader,epochs=NUM_EPOCH)
-# model.save(model_save_path)
+model.save(model_save_path)

@@ -35,7 +35,7 @@ args.cuda = not args.no_cuda and torch.cuda.is_available()
 
 torch.manual_seed(args.seed)
 if args.cuda:
-		torch.cuda.manual_seed(args.seed)
+	torch.cuda.manual_seed(args.seed)
 
 
 class LMS_CNN(nn.Module):
@@ -49,7 +49,7 @@ class LMS_CNN(nn.Module):
 
 	def forward(self, x):
 		short_term_input, mid_term_input, long_term_input = \
-				x.narrow(2, 0, SHORT_TERM_LENGTH), x.narrow(2, 0, MID_TERM_LENGTH), x
+			x.narrow(2, 0, SHORT_TERM_LENGTH), x.narrow(2, 0, MID_TERM_LENGTH), x
 		# https://github.com/pytorch/pytorch/issues/764
 		short_term_input.contiguous()
 		mid_term_input.contiguous()
@@ -78,8 +78,9 @@ class LMS_CNN(nn.Module):
 
 		x = self.fc1(merge_layer)
 		x = self.fc2(x)
-		x = F.dropout(x, training=self.training) # F.dropout vs nn.dropout2d:https://discuss.pytorch.org/t/how-to-choose-between-torch-nn-functional-and-torch-nn-module-see-mnist-https-github-com-pytorch-examples-blob-master-mnist-main-py/2800/8
-		return F.log_softmax(x,dim=1) #TODO check dim =0 correctnetss
+		x = F.dropout(x,
+									training=self.training)  # F.dropout vs nn.dropout2d:https://discuss.pytorch.org/t/how-to-choose-between-torch-nn-functional-and-torch-nn-module-see-mnist-https-github-com-pytorch-examples-blob-master-mnist-main-py/2800/8
+		return F.log_softmax(x, dim=1)  # TODO check dim =0 correctnetss
 
 
 class LMS_CNN_keras_wrapper:
@@ -87,13 +88,13 @@ class LMS_CNN_keras_wrapper:
 		self._model = LMS_CNN()
 		self.optimizer = optim.Adam(self._model.parameters(), lr=args.lr, )
 		if args.cuda:
-				self._model.cuda()
+			self._model.cuda()
 
 	def train(self, epoch, train_loader):
 		self._model.train()  # sets to train mode
 		for batch_idx, (data, target) in enumerate(train_loader):
 			if args.cuda:
-					data, target = data.cuda(), target.cuda()
+				data, target = data.cuda(), target.cuda()
 			data, target = Variable(data), Variable(target)
 			self.optimizer.zero_grad()
 			output = self._model(data)
@@ -111,9 +112,9 @@ class LMS_CNN_keras_wrapper:
 			loss.backward()
 			self.optimizer.step()
 			if batch_idx % args.log_interval == 0:
-					print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-							epoch, batch_idx * len(data), len(train_loader.dataset),
-										 100. * batch_idx / len(train_loader), loss.data[0]))
+				print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+					epoch, batch_idx * len(data), len(train_loader.dataset),
+								 100. * batch_idx / len(train_loader), loss.data[0]))
 
 	def test(self, test_loader):
 		self._model.eval()  # sets model to test mode
@@ -121,7 +122,7 @@ class LMS_CNN_keras_wrapper:
 		correct = 0
 		for data, target in test_loader:
 			if args.cuda:
-					data, target = data.cuda(), target.cuda()
+				data, target = data.cuda(), target.cuda()
 			data, target = Variable(data, volatile=True), Variable(target)
 			output = self._model(data)
 			test_loss += F.nll_loss(output, target, size_average=False).data[0]  # sum up batch loss
@@ -137,11 +138,11 @@ class LMS_CNN_keras_wrapper:
 		# TODO keras prepare batch within model, torch prepare batch in datagenerator due to former static
 		# TODO and latter dynamic in the computation graph
 		for epoch in range(1, epochs + 1):
-				self.train(epoch, train_loader)
-				self.test(test_loader)
+			self.train(epoch, train_loader)
+			self.test(test_loader)
 
-	def save(self,path):
-		torch.save(self._model.state_dict(),path)
+	def save(self, path):
+		torch.save(self._model.state_dict(), path)
 
-	def load_weights(self,path):
+	def load_weights(self, path):
 		self._model.load_state_dict(torch.load(path))

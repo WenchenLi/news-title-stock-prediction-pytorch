@@ -34,7 +34,7 @@ TRAIN_TEST_SEP_RATE = .8
 
 # train base config
 BATCH_SIZE = 256
-NUM_EPOCH = 1000
+NUM_EPOCH = 10
 
 ## optimizer
 LEARNING_RATE= 0.0002

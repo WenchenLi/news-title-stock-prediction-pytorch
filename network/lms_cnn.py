@@ -19,13 +19,13 @@ from network.model_config import *
 class LMS_CNN(nn.Module):
 	def __init__(self):
 		super(LMS_CNN, self).__init__()
-		self.mid_term_conv_layer = nn.Conv2d(1, 1, kernel_size=MID_TERM_CONV_KERNEL)  # MID_TERM_CONV_KERNEL)
+		self.mid_term_conv_layer = nn.Conv2d(1, 1, kernel_size=MID_TERM_CONV_KERNEL,padding=(3,0))  # MID_TERM_CONV_KERNEL)
 		self.mid_conv_dropout = nn.Dropout()
 		self.long_term_conv_layer = nn.Conv2d(1, 1, kernel_size=LONG_TERM_CONV_KERNEL)  # LONG_TERM_CONV_KERNEL)
 		self.long_conv_dropout = nn.Dropout()
-		self.fc1 = nn.Linear(3608, 16)  # TODO  fix this calculation later, cat -1 length
+		self.fc1 = nn.Linear(3803, DENSE_HIDDEN_SIZE)  # TODO  fix this calculation later, cat -1 length
 		self.fc1_dropout = nn.Dropout()
-		self.fc2 = nn.Linear(16, 2)
+		self.fc2 = nn.Linear(DENSE_HIDDEN_SIZE, OUTPUT_DIM)
 
 	def forward(self, x):
 		short_term_input, mid_term_input, long_term_input = \
@@ -37,12 +37,10 @@ class LMS_CNN(nn.Module):
 
 		short_term_flat = short_term_input.view(short_term_input.size(0), -1)
 
-		# mid_term_input = mid_term_input.view(mid_term_input.size(0),mid_term_input.size(2),mid_term_input.size(3))
 		mid_term_conv = self.mid_term_conv_layer(mid_term_input)
 		mid_term_max_pool = F.max_pool2d(self.mid_conv_dropout(mid_term_conv), MID_TERM_POOL_SIZE)
 		mid_term_flat = mid_term_max_pool.view(mid_term_max_pool.size(0), -1)
 
-		# long_term_input = long_term_input.view(long_term_input.size(0),long_term_input.size(2),long_term_input.size(3))
 		long_term_conv = self.long_term_conv_layer(long_term_input)
 		long_term_max_pool = F.max_pool2d(self.long_conv_dropout(long_term_conv), LONG_TERM_POOL_SIZE)
 		long_term_flat = long_term_max_pool.view(long_term_max_pool.size(0), -1)
@@ -51,18 +49,16 @@ class LMS_CNN(nn.Module):
 		mid_term_flat = mid_term_flat.view(mid_term_flat.size(0), -1)
 		long_term_flat = long_term_flat.view(long_term_flat.size(0), -1)
 
-		# print("short:", short_term_flat.size(),
-		#       "mid:", mid_term_flat.size(),
-		#       "long:", long_term_flat.size())
-
 		merge_layer = torch.cat([short_term_flat, mid_term_flat, long_term_flat], 1)
+
+		# print (short_term_flat.size(), mid_term_max_pool.size(), long_term_max_pool.size())
 
 		x = self.fc1(merge_layer)
 		x = self.fc1_dropout(x)
 		# F.dropout vs nn.dropout2d:https://discuss.pytorch.org/t/how-to-choose-between-torch-nn-functional-and-torch-nn-module-see-mnist-https-github-com-pytorch-examples-blob-master-mnist-main-py/2800/8
 		x = self.fc2(x)
 
-		return F.log_softmax(x, dim=1)  # TODO check dim =0 correctnetss
+		return F.log_softmax(x, dim=1)
 
 
 class LMS_CNN_keras_wrapper:
@@ -73,7 +69,7 @@ class LMS_CNN_keras_wrapper:
 		if self.cuda:
 			self._model.cuda()
 
-	def train(self, epoch, train_loader):
+	def train(self, train_loader):
 		self._model.train()  # sets to train mode
 		loss_list = []
 		for batch_idx, (data, target) in enumerate(train_loader):
@@ -82,7 +78,6 @@ class LMS_CNN_keras_wrapper:
 			data, target = Variable(data), Variable(target)
 			self.optimizer.zero_grad()
 			output = self._model(data)
-			# print ("output size:",output.size(),"target size:",target.size())
 			loss = F.nll_loss(output, target)
 
 			l2_reg = None
@@ -121,13 +116,11 @@ class LMS_CNN_keras_wrapper:
 			100. * correct / len(test_loader.dataset))
 		return info
 
-	def fit(self, train_loader, test_loader, epochs):  # batch_size=BATCH_SIZE):
-		# TODO keras prepare batch within model, torch prepare batch in datagenerator due to former static
-		# TODO and latter dynamic in the computation graph
+	def fit(self, train_loader, test_loader, epochs):
 		pbar = tqdm(range(1, epochs + 1))
 		for epoch in pbar:
 			train_info = "Training set: Average loss:"
-			average_loss = self.train(epoch, train_loader)
+			average_loss = self.train(train_loader)
 			train_info += str(average_loss)
 
 			test_info = self.test(test_loader)

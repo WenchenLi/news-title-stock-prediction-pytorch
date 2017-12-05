@@ -19,11 +19,12 @@ from network.model_config import *
 class LMS_CNN(nn.Module):
 	def __init__(self):
 		super(LMS_CNN, self).__init__()
-		self.mid_term_conv_layer = nn.Conv2d(1, 1, kernel_size=MID_TERM_CONV_KERNEL)  # MID_TERM_CONV_KERNEL)
+		self.mid_term_conv_layer = nn.Conv2d(1, 1, kernel_size=MID_TERM_CONV_KERNEL)
 		self.mid_conv_dropout = nn.Dropout()
-		self.long_term_conv_layer = nn.Conv2d(1, 1, kernel_size=LONG_TERM_CONV_KERNEL)  # LONG_TERM_CONV_KERNEL)
+		self.long_term_conv_layer = nn.Conv2d(1, 1, kernel_size=LONG_TERM_CONV_KERNEL)
 		self.long_conv_dropout = nn.Dropout()
-		self.fc1 = nn.Linear(3608, DENSE_HIDDEN_SIZE)  # TODO  fix this calculation later, cat -1 length
+
+		self.fc1 = nn.Linear(DENSE_HIDDEN_INPUT, DENSE_HIDDEN_SIZE)  # TODO  fix this calculation later, cat -1 length
 		self.fc1_dropout = nn.Dropout()
 		self.fc2 = nn.Linear(DENSE_HIDDEN_SIZE, OUTPUT_DIM)
 

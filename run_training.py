@@ -25,7 +25,7 @@ from network.util import load_pickle
 from network.lms_cnn import *
 
 # pre training paths/configs
-resume_training = True
+resume_training = False
 date_news_embedding_path = TRAINING_DIR +"/date_news_embedding" + "_" + EMBEDDING_METHOD + "_" + str(
 	EMBEDDING_DIM) + ".pickle"
 df_dt_adjclose_with_titles_path = TRAINING_DIR +"/input_dataframe_with_signal.pickle"

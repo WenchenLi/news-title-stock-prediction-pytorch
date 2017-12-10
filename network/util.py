@@ -37,6 +37,7 @@ from __future__ import print_function
 
 import pickle
 import datetime
+import pandas as pd
 
 
 def add_one_day(date_string):
@@ -110,5 +111,9 @@ def load_pickle(filepath):
 	"""
 	load object from pickle
 	"""
-	with open(filepath, 'rb') as handle:
-		return pickle.load(handle)
+	try:
+		with open(filepath, 'rb') as handle:
+			return pickle.load(handle)
+	except:
+		return pd.read_pickle(filepath)
+

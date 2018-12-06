@@ -81,7 +81,7 @@ You can find complete Bloomberg \& Reuters data interface example at training_di
 
 ### long mid short term CNN
 
-![lms_cnn](data/img/lms_cnn.png)
+![lms_cnn](img_src/lms_cnn.png)
 
 input to long_mid_short cnn(or deep prediction model mentioned in the paper) has three parts:
 of same essence<br>
@@ -128,7 +128,7 @@ back-propagate to the event extraction part (aka neural tensor network), given o
 The author believe if given enough data(currently only 1786 trading days news title), it is worth a deeper model to learn the
 information extraction by a complete model itself instead of separate SVO extraction and prediction. 
  
-![NTN](data/img/NTN.png)
+![NTN](img_src/NTN.png)
 
 
 ## Experiments
